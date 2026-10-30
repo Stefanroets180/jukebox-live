@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -26,9 +25,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PlaybackServiceTest {
 
     @Autowired
-    private PlaybackService playbackService;
-
-    @Autowired
     private QueueItemRepository queueItemRepository;
 
     @Autowired
@@ -39,6 +35,9 @@ public class PlaybackServiceTest {
 
     @Autowired
     private PartyRepository partyRepository;
+
+    @Autowired
+    private PlaybackService playbackService;
 
     private UUID partyId;
     private UUID trackId;

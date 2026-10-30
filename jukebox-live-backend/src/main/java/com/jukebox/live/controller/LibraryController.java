@@ -3,11 +3,14 @@ package com.jukebox.live.controller;
 import com.jukebox.live.dto.*;
 import com.jukebox.live.entity.Track;
 import com.jukebox.live.entity.User;
+import com.jukebox.live.service.ArtworkCacheService;
 import com.jukebox.live.service.ArtworkDiscoveryService;
 import com.jukebox.live.service.LibraryScannerService;
 import com.jukebox.live.repository.TrackRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +30,7 @@ public class LibraryController {
     private final LibraryScannerService libraryScannerService;
     private final TrackRepository trackRepository;
     private final ArtworkDiscoveryService artworkDiscoveryService;
+    private final ArtworkCacheService artworkCacheService;
 
     @GetMapping("/search")
     public ResponseEntity<List<TrackDto>> search(@RequestParam String q) {
@@ -44,6 +48,41 @@ public class LibraryController {
                         .artworkSourceUrl(t.getArtworkSourceUrl())
                         .build())
                 .collect(Collectors.toList()));
+    }
+
+    @GetMapping("/artists")
+    public ResponseEntity<List<String>> artists() {
+        return ResponseEntity.ok(trackRepository.findArtists());
+    }
+
+    @GetMapping("/genres")
+    public ResponseEntity<List<String>> genres() {
+        return ResponseEntity.ok(trackRepository.findGenres());
+    }
+
+    @GetMapping("/artists/{artist}/tracks")
+    public ResponseEntity<List<TrackDto>> artistTracks(@PathVariable String artist) {
+        return ResponseEntity.ok(trackRepository.findByArtist(artist).stream().map(this::toTrackDto).toList());
+    }
+
+    @GetMapping("/artists/{artist}/albums/{album}/tracks")
+    public ResponseEntity<List<TrackDto>> albumTracks(@PathVariable String artist, @PathVariable String album) {
+        return ResponseEntity.ok(trackRepository.findByArtistAndAlbum(artist, album).stream().map(this::toTrackDto).toList());
+    }
+
+    @GetMapping("/genres/{genre}/tracks")
+    public ResponseEntity<List<TrackDto>> genreTracks(@PathVariable String genre) {
+        return ResponseEntity.ok(trackRepository.findByGenre(genre).stream().map(this::toTrackDto).toList());
+    }
+
+    @GetMapping("/artwork/cache/{cacheKey}")
+    public ResponseEntity<Resource> getCachedArtwork(@PathVariable String cacheKey) {
+        if (!cacheKey.matches("[a-z0-9-]{20,128}")) {
+            return ResponseEntity.notFound().build();
+        }
+        Resource resource = artworkCacheService.resource(cacheKey);
+        if (resource == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(resource);
     }
 
     @GetMapping("/stats")

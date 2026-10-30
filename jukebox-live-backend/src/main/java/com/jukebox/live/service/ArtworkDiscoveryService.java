@@ -30,6 +30,7 @@ public class ArtworkDiscoveryService {
     private final ArtworkMetadataProvider artworkMetadataProvider;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final ArtworkCacheService artworkCacheService;
 
     public ArtworkLookupResponse lookup(UUID trackId, boolean retry) {
         Track track = findTrack(trackId);

@@ -38,4 +38,16 @@ public class CreditTransaction {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "remaining_credits")
+    private Integer remainingCredits;
+
+    @Column(name = "expires_at")
+    private Instant expiresAt;
+
+    @Column(name = "grant_id")
+    private UUID grantId;
+
+    @Version
+    private Long version;
 }

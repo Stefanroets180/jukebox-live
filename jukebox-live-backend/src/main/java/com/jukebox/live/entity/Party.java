@@ -55,4 +55,8 @@ public class Party {
 
     @Column(name = "ended_at")
     private Instant endedAt;
+
+    @Column(name = "credits_valid_days", nullable = false)
+    @Builder.Default
+    private Integer creditsValidDays = 30;
 }

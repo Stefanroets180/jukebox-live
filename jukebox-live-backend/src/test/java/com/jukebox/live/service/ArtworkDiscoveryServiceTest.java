@@ -44,12 +44,15 @@ class ArtworkDiscoveryServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private ArtworkCacheService artworkCacheService;
+
     private ArtworkDiscoveryService service;
     private UUID trackId;
 
     @BeforeEach
     void setUp() {
-        service = new ArtworkDiscoveryService(trackRepository, artworkMetadataProvider, new ObjectMapper(), eventPublisher);
+        service = new ArtworkDiscoveryService(trackRepository, artworkMetadataProvider, new ObjectMapper(), eventPublisher, artworkCacheService);
         trackId = UUID.randomUUID();
     }
 

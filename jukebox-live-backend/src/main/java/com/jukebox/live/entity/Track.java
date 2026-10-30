@@ -64,4 +64,7 @@ public class Track {
     @CreationTimestamp
     @Column(name = "indexed_at", nullable = false, updatable = false)
     private Instant indexedAt;
+
+    @Column(name = "artwork_cache_key", length = 128)
+    private String artworkCacheKey;
 }

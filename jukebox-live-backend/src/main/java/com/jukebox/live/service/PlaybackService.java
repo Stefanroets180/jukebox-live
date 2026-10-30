@@ -8,6 +8,7 @@ import com.jukebox.live.entity.QueueItem;
 import com.jukebox.live.entity.Track;
 import com.jukebox.live.entity.User;
 import com.jukebox.live.event.PlaybackUpdatedEvent;
+import com.jukebox.live.event.QueueUpdatedEvent;
 import com.jukebox.live.repository.QueueItemRepository;
 import com.jukebox.live.repository.TrackRepository;
 import com.jukebox.live.repository.UserRepository;
@@ -96,6 +97,9 @@ public class PlaybackService {
 
         // Start the next track only if our update succeeded
         startNextTrack(partyId);
+
+        // Publish queue update to refresh WebSocket clients with updated queue state
+        eventPublisher.publishEvent(new QueueUpdatedEvent(this, partyId));
     }
 
     /**

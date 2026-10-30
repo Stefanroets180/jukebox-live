@@ -34,6 +34,18 @@ export function usePartyData() {
       : null
   const queue = realtimeStatus === "connected" && liveQueue !== null ? liveQueue : queueFallback
   const nowPlaying = realtimeStatus === "connected" && liveNowPlaying !== undefined ? liveNowPlaying : nowPlayingFallback
+
+  // Log queue source to track WebSocket vs SWR data
+  if (typeof window !== "undefined" && activeSession) {
+    console.log("[usePartyData] Queue source:", {
+      realtimeStatus,
+      usingWebSocket: realtimeStatus === "connected" && liveQueue !== null,
+      queueLength: queue.length,
+      queueIds: queue.map((item) => ({ id: item.id, status: item.status })),
+      liveQueue: liveQueue?.map((item) => ({ id: item.id, status: item.status })),
+      fallbackQueue: queueFallback.map((item) => ({ id: item.id, status: item.status })),
+    })
+  }
   const guests = guestsQuery.data ?? []
   const isPreview = !activeSession || Boolean(queueQuery.error || nowPlayingQuery.error)
   const isGuestsPreview = !activeSession || activeSession.role !== "ADMIN" || Boolean(guestsQuery.error || !guestsQuery.data)

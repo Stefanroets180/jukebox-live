@@ -307,12 +307,95 @@ public class LibraryScannerServiceTest {
     public void testGetTrackCount_AfterScan_ReturnsCorrectCount() throws IOException {
         Path musicDir = tempDir.resolve("music");
         Files.createDirectories(musicDir);
-        
+
         Path mp3File = musicDir.resolve("test.mp3");
         Files.createFile(mp3File);
-        
+
         libraryScannerService.scanLibrary(musicDir.toString());
-        
+
         assertThat(libraryScannerService.getTrackCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void testRescanningClearsArtworkWhenMetadataActuallyChanges() throws IOException {
+        // Create a file with initial ID3 tags
+        Path musicDir = tempDir.resolve("music");
+        Files.createDirectories(musicDir);
+        Path trackPath = musicDir.resolve("track.mp3");
+
+        // Initial scan with metadata: "First Album"
+        byte[] initialTags = id3Tag("First Song", "Artist One", "First Album");
+        Files.write(trackPath, initialTags);
+
+        libraryScannerService.scanLibrary(musicDir.toString());
+        Track original = trackRepository.findFirstByFilePathOrderByIndexedAtDesc(trackPath.toString()).orElseThrow();
+        assertThat(original.getTitle()).isEqualTo("First Song");
+        assertThat(original.getAlbum()).isEqualTo("First Album");
+
+        // Add artwork metadata
+        original.setAlbumArtPath("https://coverartarchive.org/release/11111111-1111-4111-8111-111111111111/front-500");
+        original.setMusicBrainzReleaseId("11111111-1111-4111-8111-111111111111");
+        original.setArtworkSourceUrl("https://musicbrainz.org/release/11111111-1111-4111-8111-111111111111");
+        original.setArtworkLookupStatus(ArtworkLookupStatus.FOUND);
+        original.setArtworkLastCheckedAt(Instant.parse("2024-01-01T00:00:00Z"));
+        trackRepository.saveAndFlush(original);
+
+        // Rescan with different metadata: "Second Album"
+        byte[] newTags = id3Tag("First Song", "Artist One", "Second Album");
+        Files.write(trackPath, newTags);
+
+        libraryScannerService.scanLibrary(musicDir.toString());
+        Track rescanned = trackRepository.findFirstByFilePathOrderByIndexedAtDesc(trackPath.toString()).orElseThrow();
+
+        // Artwork should be cleared because album changed
+        assertThat(rescanned.getId()).isEqualTo(original.getId());
+        assertThat(rescanned.getTitle()).isEqualTo("First Song");
+        assertThat(rescanned.getAlbum()).isEqualTo("Second Album");
+        assertThat(rescanned.getAlbumArtPath()).isNull();
+        assertThat(rescanned.getMusicBrainzReleaseId()).isNull();
+        assertThat(rescanned.getArtworkSourceUrl()).isNull();
+        assertThat(rescanned.getArtworkLookupStatus()).isEqualTo(ArtworkLookupStatus.NOT_LOOKED_UP);
+    }
+
+    @Test
+    public void testScanningDoesNotAlterFileContents() throws Exception {
+        Path musicDir = tempDir.resolve("music");
+        Files.createDirectories(musicDir);
+        Path trackPath = musicDir.resolve("track.mp3");
+
+        byte[] originalContent = new byte[500];
+        for (int i = 0; i < originalContent.length; i++) {
+            originalContent[i] = (byte) (i % 256);
+        }
+        Files.write(trackPath, originalContent);
+
+        byte[] originalHash = java.security.MessageDigest.getInstance("SHA-256")
+                .digest(Files.readAllBytes(trackPath));
+
+        libraryScannerService.scanLibrary(musicDir.toString());
+
+        byte[] afterScanHash = java.security.MessageDigest.getInstance("SHA-256")
+                .digest(Files.readAllBytes(trackPath));
+
+        assertThat(java.util.Arrays.equals(originalHash, afterScanHash)).isTrue();
+        assertThat(Files.readAllBytes(trackPath)).isEqualTo(originalContent);
+    }
+
+    @Test
+    public void testScanningDoesNotAlterFileModificationTimestamp() throws IOException {
+        Path musicDir = tempDir.resolve("music");
+        Files.createDirectories(musicDir);
+        Path trackPath = musicDir.resolve("track.mp3");
+        Files.createFile(trackPath);
+
+        // Set a specific modification time
+        java.nio.file.attribute.FileTime originalTime = java.nio.file.attribute.FileTime.fromMillis(1000000000000L);
+        Files.setLastModifiedTime(trackPath, originalTime);
+
+        libraryScannerService.scanLibrary(musicDir.toString());
+
+        java.nio.file.attribute.FileTime afterScanTime = Files.getLastModifiedTime(trackPath);
+
+        assertThat(afterScanTime).isEqualTo(originalTime);
     }
 }

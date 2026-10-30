@@ -8,6 +8,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 @RequiredArgsConstructor
+@Slf4j
 public class PartyPresenceFilter implements Filter {
 
     private final PartyRepository partyRepository;
@@ -70,7 +72,19 @@ public class PartyPresenceFilter implements Filter {
 
         // IP check - guest must be on the same local network subnet as the party host
         String clientIp = getClientIp(httpRequest);
-        if (!NetworkUtil.isSameSubnet(clientIp, party.getPartyIp())) {
+        String partyIp = party.getPartyIp();
+        
+        // Log diagnostic information (privacy-preserving - no full IPs)
+        String clientIpFamily = NetworkUtil.isIPv6(clientIp) ? "IPv6" : "IPv4";
+        String partyIpFamily = partyIp == null ? "MISSING" : (NetworkUtil.isIPv6(partyIp) ? "IPv6" : "IPv4");
+        boolean sameSubnet = NetworkUtil.isSameSubnet(clientIp, partyIp);
+        
+        log.info("[PARTY PRESENCE] Subnet check - path: {}, clientIpFamily: {}, partyIpFamily: {}, sameSubnet: {}", 
+            path, clientIpFamily, partyIpFamily, sameSubnet);
+        
+        if (!sameSubnet) {
+            log.warn("[PARTY PRESENCE] 403 Forbidden - not on party network - path: {}, clientIpFamily: {}, partyIpFamily: {}", 
+                path, clientIpFamily, partyIpFamily);
             httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
             httpResponse.getWriter().write("{\"message\":\"You must be on the party WiFi network\",\"code\":\"NOT_ON_NETWORK\"}");
             return;

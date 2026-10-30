@@ -34,6 +34,7 @@ type SessionContextValue = {
   updateCredits: (credits: number) => void
   updateParty: (party: { id: string; code: string }) => void
   logout: () => void
+  resumePlayback?: () => void
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null)
@@ -212,6 +213,7 @@ export function JukeboxProvider({ children }: { children: React.ReactNode }) {
     updateCredits,
     updateParty,
     logout,
+    resumePlayback: undefined,
   }), [session, hydrated, realtimeStatus, liveQueue, liveNowPlaying, authenticate, updateCredits, updateParty, logout])
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

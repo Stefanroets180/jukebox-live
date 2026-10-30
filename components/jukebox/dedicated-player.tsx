@@ -24,6 +24,7 @@ import { SiteHeader } from "@/components/jukebox/site-header"
 import { ApiError, jukeboxApi } from "@/lib/jukebox/api"
 import { useJukebox } from "@/lib/jukebox/context"
 import { usePartyData } from "@/lib/jukebox/use-party-data"
+import { useAudioPlayer } from "@/components/jukebox/global-audio-player"
 import { formatDuration, type Track } from "@/lib/jukebox/types"
 import { toast } from "sonner"
 
@@ -34,6 +35,7 @@ function getApiErrorMessage(error: unknown, fallback: string) {
 export function DedicatedPlayer() {
   const { hydrated, session, isAdmin } = useJukebox()
   const { queue, nowPlaying, isSyncing, mutateQueue, mutateNowPlaying } = usePartyData()
+  const { resumePlayback, audioError } = useAudioPlayer()
   const adminSession = isAdmin && session?.partyId ? session : null
   const partyId = adminSession?.partyId ?? null
   const [searchText, setSearchText] = useState("")
@@ -220,6 +222,16 @@ export function DedicatedPlayer() {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
+                        {audioError && (
+                          <Button
+                            type="button"
+                            variant="default"
+                            size="lg"
+                            onClick={resumePlayback}
+                          >
+                            <Play aria-hidden="true" data-icon="inline-start" />Resume playback
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           variant="outline"
